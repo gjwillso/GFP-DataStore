@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'SAM Template for GFP-DataStore
+
+  '
+Globals:
+  Api:
+    TracingEnabled: true
+  Function:
+    Runtime: python3.9
+    Timeout: 60
+    MemorySize: 256
+    Tracing: Active
+    Environment:
+      Variables:
+        Region:
+          Ref: AWS::Region
+        LOG_LEVEL: INFO
+        POWERTOOLS_LOGGER_SAMPLE_RATE: 0.1
+        POWERTOOLS_LOGGER_LOG_EVENT: true
+        POWERTOOLS_METRICS_NAMESPACE: GFP
+        POWERTOOLS_SERVICE_NAME: GFP-DataStore
+Resources:
+  GFPDataStoreFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: GFP DataStore Lambda Function
+      FunctionName: GFP_DataStore
+      CodeUri: GFPDataStoreFunction
+      Handler: datastore_activity_handler.lambda_handler
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: GFPDataStoreTable
+      Environment:
+        Variables:
+          Table_Name:
+            Ref: GFPDataStoreTable
+      Events:
+        CreateItem:
+          Type: Api
+          Properties:
+            Path: /newactivity
+            Method: POST
+        GetItems:
+          Type: Api
+          Properties:
+            Path: /getactivities
+            Method: GET
+      Layers:
+      - Fn::GetAtt:
+        - AwsSamAutoDependencyLayerNestedStack
+        - Outputs.GFPDataStoreFunction4b33730bDepLayer
+  GFPDataStoreTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: object_id
+        Type: String
+      TableName: GFP-ActivitiesTable
+  AwsSamAutoDependencyLayerNestedStack:
+    DeletionPolicy: Delete
+    Metadata:
+      CreatedBy: AWS SAM CLI sync command
+    Properties:
+      TemplateURL: /home/gwill/repos/GFP/GFP-DataStore/.aws-sam/auto-dependency-layer/nested_template.yaml
+    Type: AWS::CloudFormation::Stack
+Outputs:
+  NewActivityHandlerApiEndpoint:
+    Description: The URL for NEW GFP DataStore Activity API
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/newactivity
+  GetActivitiesHandlerApiEndpoint:
+    Description: The URL for GFP DataStore Activity Get Requests API
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/getactivities
+  GFPDataStoreApiFunction:
+    Description: Incoming New Strava Events handler function ARN
+    Value:
+      Fn::GetAtt:
+      - GFPDataStoreFunction
+      - Arn
