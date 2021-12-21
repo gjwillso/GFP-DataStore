@@ -40,11 +40,6 @@ Resources:
           Properties:
             Path: /newactivity
             Method: POST
-        GetItems:
-          Type: Api
-          Properties:
-            Path: /getactivities
-            Method: GET
 
   GFPDataStoreTable:
     Type: AWS::Serverless::SimpleTable
